@@ -307,6 +307,68 @@ def _restore_existing(path: Path, content: bytes | None) -> None:
         path.write_bytes(content)
 
 
+def _mg_subprocess_candidates(mg_dir: Path) -> list[Path]:
+    subproc_dir = mg_dir / "SubProcesses"
+    if not subproc_dir.is_dir():
+        return []
+    return [path for path in sorted(subproc_dir.glob("PV*")) if path.is_dir()]
+
+
+def _missing_mg_executable_message(mg_dir: Path, executable: Path) -> str:
+    build_command = (
+        f"make -f Makefile -f {Path(__file__).with_name('mg_eval.mk')} "
+        f"{executable.name}"
+    )
+    message = (
+        f"MadGraph evaluator executable not found: {executable}. "
+        "Copy hgg_mg_eval.f into the generated subprocess directory and run "
+        f"'{build_command}'."
+    )
+    candidates = _mg_subprocess_candidates(mg_dir)
+    if candidates:
+        shown = ", ".join(str(path) for path in candidates[:5])
+        message += (
+            " The configured mg_dir looks like a top-level MadGraph process directory; "
+            f"set mg_dir to the generated virtual subprocess directory instead, e.g. {shown}."
+        )
+    return message
+
+
+def madgraph_process_root(mg_dir: Path) -> Path:
+    if mg_dir.parent.name == "SubProcesses":
+        return mg_dir.parent.parent
+    return mg_dir
+
+
+def madgraph_library_dirs(mg_dir: Path) -> list[Path]:
+    root = madgraph_process_root(mg_dir)
+    candidates = [
+        root / "lib",
+        root / "lib" / "collier_lib",
+        root / "lib" / "ninja_lib",
+    ]
+    dirs: list[Path] = []
+    for path in candidates:
+        if path.is_dir():
+            dirs.append(path)
+            resolved = path.resolve()
+            if resolved != path and resolved.is_dir():
+                dirs.append(resolved)
+    return dirs
+
+
+def madgraph_runtime_env(mg_dir: Path, base_env: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(os.environ if base_env is None else base_env)
+    library_paths = [str(path) for path in madgraph_library_dirs(mg_dir)]
+    for variable in ("DYLD_LIBRARY_PATH", "LD_LIBRARY_PATH"):
+        old_value = env.get(variable)
+        if old_value and library_paths:
+            env[variable] = os.pathsep.join(library_paths + [old_value])
+        elif library_paths:
+            env[variable] = os.pathsep.join(library_paths)
+    return env
+
+
 def validate_mg_paths(mg_dir: Path, executable: Path) -> None:
     if not mg_dir.exists():
         raise FileNotFoundError(
@@ -318,11 +380,7 @@ def validate_mg_paths(mg_dir: Path, executable: Path) -> None:
     if not mg_dir.is_dir():
         raise FileNotFoundError(f"Configured mg_dir is not a directory: {mg_dir}")
     if not executable.exists():
-        raise FileNotFoundError(
-            f"MadGraph evaluator executable not found: {executable}. "
-            "Copy hgg_mg_eval.f into the generated subprocess directory and run "
-            "'make -f Makefile -f /path/to/QCDHjjComparator/mg_eval.mk hgg_mg_eval'."
-        )
+        raise FileNotFoundError(_missing_mg_executable_message(mg_dir, executable))
 
 
 def run_madgraph_evaluator(
@@ -349,6 +407,7 @@ def run_madgraph_evaluator(
         proc = subprocess.run(
             [str(executable)],
             cwd=mg_dir,
+            env=madgraph_runtime_env(mg_dir),
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -358,7 +417,19 @@ def run_madgraph_evaluator(
             raise RuntimeError(f"MadGraph evaluator failed with {proc.returncode}\n{proc.stdout}")
         if not output_path.exists():
             raise RuntimeError(f"MadGraph evaluator did not write {output_path}\n{proc.stdout}")
-        return read_mg_results(output_path)
+        results = read_mg_results(output_path)
+        if len(results) != len(points):
+            hint = ""
+            if "MLReductionLib is wrong" in proc.stdout:
+                hint = (
+                    " Run 'make -C <MadGraph process root>/Source treatCardsLoopNoInit' "
+                    "to write MadLoopParams.dat in runtime format."
+                )
+            raise RuntimeError(
+                f"MadGraph evaluator wrote {len(results)} result rows for {len(points)} input points."
+                f"{hint}\n{proc.stdout[-2000:]}"
+            )
+        return results
     finally:
         _restore_existing(input_path, old_input)
         _restore_existing(output_path, old_output)

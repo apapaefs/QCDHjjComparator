@@ -69,7 +69,19 @@ That produces undefined references to `ML5_...`, `SETPARA`, and
 `UPDATE_AS_PARAM2`. The `mg_eval.mk` fragment adds the missing target and links
 against the same generated MadLoop objects used by MadGraph's `check`
 executable. It will also ask the generated `Source` makefile to build
-`libdhelas.a` and `libmodel.a` if they are missing.
+`libdhelas.a` and `libmodel.a` if they are missing, and to run
+`treatCardsLoopNoInit` so `MadLoopParams.dat` is in the runtime format expected
+by the standalone evaluator.
+
+If you already built an evaluator before this makefile fragment included the
+MadLoop card step, run this once from the generated process root:
+
+```bash
+make -C Source treatCardsLoopNoInit
+```
+
+Without that step, the evaluator may print `MLReductionLib is wrong: !6|7|1`
+and produce an empty `hgg_mg_eval.out`.
 
 The evaluator reads `hgg_mg_points.dat` and writes `hgg_mg_eval.out`. It expects
 the momentum order:

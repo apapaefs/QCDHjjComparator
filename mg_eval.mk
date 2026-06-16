@@ -11,8 +11,11 @@
 
 MG_EVAL ?= hgg_mg_eval
 
-$(MG_EVAL): $(MG_EVAL).o $(PROCESS) makefile $(LIBS)
+$(MG_EVAL): $(MG_EVAL).o $(PROCESS) makefile $(LIBS) | mg_eval_loop_cards
 	$(FC) $(FFLAGS) -o $@ $(MG_EVAL).o $(PROCESS) $(LINKLIBS)
+
+mg_eval_loop_cards:
+	$(MAKE) -C $(ROOT)/Source treatCardsLoopNoInit
 
 $(LIBDIR)libdhelas.$(libext):
 	$(MAKE) -C $(ROOT)/Source libdhelas

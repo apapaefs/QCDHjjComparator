@@ -15,9 +15,11 @@ from compare_openloops_mg_hjj import (  # noqa: E402
     OpenLoopsResult,
     generate_accepted_points,
     invariant_mass,
+    madgraph_runtime_env,
     make_comparison_rows,
     run_madgraph_evaluator,
     select_subprocess,
+    validate_mg_paths,
 )
 
 
@@ -131,6 +133,43 @@ class MadGraphEvaluatorTests(unittest.TestCase):
             self.assertEqual((mg_dir / "points.dat").read_text(), "old input\n")
             self.assertEqual((mg_dir / "results.dat").read_text(), "old output\n")
 
+    def test_mg_evaluator_rejects_missing_output_rows(self):
+        points = [
+            generate_accepted_points(
+                subprocess="hgg",
+                final_pdgs=[21, 21],
+                n=1,
+                seed=13,
+                mjj_min=1.0,
+                ptj=0.0,
+                ymax=20.0,
+            )[0]
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            mg_dir = Path(tmp)
+            exe = mg_dir / "empty_mg_eval.py"
+            exe.write_text(
+                "#!/usr/bin/env python3\n"
+                "from pathlib import Path\n"
+                "Path('results.dat').write_text('')\n"
+                "print('MLReductionLib is wrong: !6|7|1')\n"
+            )
+            exe.chmod(exe.stat().st_mode | stat.S_IXUSR)
+
+            with self.assertRaisesRegex(RuntimeError, "wrote 0 result rows"):
+                run_madgraph_evaluator(
+                    {
+                        "mg_dir": str(mg_dir),
+                        "mg_executable": "empty_mg_eval.py",
+                        "mg_input": "points.dat",
+                        "mg_output": "results.dat",
+                    },
+                    points,
+                    alpha_s=0.11264802949303165,
+                    mu=125.0,
+                    category="hgg",
+                )
+
     def test_missing_mg_directory_has_actionable_error(self):
         points = [
             generate_accepted_points(
@@ -157,6 +196,30 @@ class MadGraphEvaluatorTests(unittest.TestCase):
                 mu=125.0,
                 category="hgg",
             )
+
+    def test_top_level_mg_directory_suggests_subprocess_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mg_root = Path(tmp) / "QCDHgg"
+            candidate = mg_root / "SubProcesses" / "PV1_0_1_gg_hgg"
+            candidate.mkdir(parents=True)
+
+            with self.assertRaisesRegex(FileNotFoundError, "PV1_0_1_gg_hgg"):
+                validate_mg_paths(mg_root, mg_root / "hgg_mg_eval")
+
+    def test_runtime_env_adds_madgraph_library_dirs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mg_root = Path(tmp) / "QCDHgg"
+            mg_dir = mg_root / "SubProcesses" / "PV1_0_1_gg_hgg"
+            (mg_root / "lib" / "collier_lib").mkdir(parents=True)
+            (mg_root / "lib" / "ninja_lib").mkdir(parents=True)
+            mg_dir.mkdir(parents=True)
+
+            env = madgraph_runtime_env(mg_dir, {"DYLD_LIBRARY_PATH": "old"})
+            dyld_paths = env["DYLD_LIBRARY_PATH"].split(os.pathsep)
+
+            self.assertIn(str(mg_root / "lib" / "collier_lib"), dyld_paths)
+            self.assertIn(str(mg_root / "lib" / "ninja_lib"), dyld_paths)
+            self.assertIn("old", dyld_paths)
 
 
 class ConfigAndRatioTests(unittest.TestCase):
