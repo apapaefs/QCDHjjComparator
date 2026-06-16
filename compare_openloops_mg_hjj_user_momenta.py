@@ -134,7 +134,8 @@ def validate_mg_paths(mg_dir, exe):
     if not exe.exists():
         raise FileNotFoundError(
             f"MadGraph evaluator executable not found: {exe}. "
-            "Copy hgg_mg_eval.f into the generated subprocess directory and run 'make hgg_mg_eval'."
+            "Copy hgg_mg_eval.f into the generated subprocess directory and run "
+            "'make -f Makefile -f /path/to/QCDHjjComparator/mg_eval.mk hgg_mg_eval'."
         )
 
 

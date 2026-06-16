@@ -13,6 +13,8 @@ not generate or build MadGraph processes automatically.
 - `compare_openloops_mg_hjj_user_momenta.py`: compares one user-supplied
   momentum point.
 - `hgg_mg_eval.f`: tiny Fortran driver for MadGraph standalone subprocesses.
+- `mg_eval.mk`: makefile fragment that links `hgg_mg_eval.f` against the
+  generated MadLoop objects and model libraries.
 - `compare_openloops_mg_hjj.example.json`: example provider configuration.
 - `user_momenta.example.dat`: example five-line momentum input.
 - `cards/`: example MadGraph process cards.
@@ -58,8 +60,16 @@ example:
 ```bash
 cd /path/to/MG5_runs/QCDHgg/SubProcesses/PV1_0_1_gg_hgg
 cp /path/to/QCDHjjComparator/hgg_mg_eval.f .
-make hgg_mg_eval
+make -f Makefile -f /path/to/QCDHjjComparator/mg_eval.mk hgg_mg_eval
 ```
+
+Do not use plain `make hgg_mg_eval`: the generated MadGraph Makefile does not
+define that target, so Make falls back to compiling `hgg_mg_eval.f` by itself.
+That produces undefined references to `ML5_...`, `SETPARA`, and
+`UPDATE_AS_PARAM2`. The `mg_eval.mk` fragment adds the missing target and links
+against the same generated MadLoop objects used by MadGraph's `check`
+executable. It will also ask the generated `Source` makefile to build
+`libdhelas.a` and `libmodel.a` if they are missing.
 
 The evaluator reads `hgg_mg_points.dat` and writes `hgg_mg_eval.out`. It expects
 the momentum order:
@@ -67,6 +77,11 @@ the momentum order:
 ```text
 incoming g, incoming g, H, parton, parton
 ```
+
+The `hgg_mg_eval` name is only historical. The executable evaluates whatever
+MadGraph subprocess directory it is linked in. If you copy the same driver into
+`PV1_0_1_gg_huxu` and build it there, it evaluates `g g -> H u~ u`; if you copy
+it into `PV1_0_1_gg_hgg`, it evaluates `g g -> H g g`.
 
 ## Configure Providers
 
