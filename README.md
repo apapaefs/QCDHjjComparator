@@ -70,8 +70,9 @@ incoming g, incoming g, H, parton, parton
 
 ## Configure Providers
 
-Copy the example JSON and replace the `mg_dir` entries with the generated
-subprocess directories:
+Do not run `compare_openloops_mg_hjj.example.json` directly. It contains
+placeholder `mg_dir` paths. Copy it first and replace the `mg_dir` entries with
+the generated subprocess directories:
 
 ```bash
 cp compare_openloops_mg_hjj.example.json compare_openloops_mg_hjj.json
@@ -129,4 +130,3 @@ The unit tests do not require a real MadGraph build:
 python3 -m unittest discover -s tests
 python3 -m py_compile compare_openloops_mg_hjj.py compare_openloops_mg_hjj_user_momenta.py
 ```
-

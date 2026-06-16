@@ -307,6 +307,23 @@ def _restore_existing(path: Path, content: bytes | None) -> None:
         path.write_bytes(content)
 
 
+def validate_mg_paths(mg_dir: Path, executable: Path) -> None:
+    if not mg_dir.exists():
+        raise FileNotFoundError(
+            f"Configured mg_dir does not exist: {mg_dir}. "
+            "Do not run compare_openloops_mg_hjj.example.json directly; "
+            "copy compare_openloops_mg_hjj.example.json to compare_openloops_mg_hjj.json "
+            "and set mg_dir to the generated MadGraph SubProcesses/PV... directory."
+        )
+    if not mg_dir.is_dir():
+        raise FileNotFoundError(f"Configured mg_dir is not a directory: {mg_dir}")
+    if not executable.exists():
+        raise FileNotFoundError(
+            f"MadGraph evaluator executable not found: {executable}. "
+            "Copy hgg_mg_eval.f into the generated subprocess directory and run 'make hgg_mg_eval'."
+        )
+
+
 def run_madgraph_evaluator(
     subprocess_config: dict[str, Any],
     points: list[PhaseSpacePoint],
@@ -318,6 +335,7 @@ def run_madgraph_evaluator(
     executable = mg_dir / subprocess_config.get("mg_executable", "hgg_mg_eval")
     input_path = mg_dir / subprocess_config.get("mg_input", "hgg_mg_points.dat")
     output_path = mg_dir / subprocess_config.get("mg_output", "hgg_mg_eval.out")
+    validate_mg_paths(mg_dir, executable)
 
     # Existing standalone MG drivers use fixed filenames; preserve any user's
     # current input/output files byte-for-byte around this temporary evaluation.

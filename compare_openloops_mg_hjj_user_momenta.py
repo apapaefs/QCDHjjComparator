@@ -120,12 +120,31 @@ def restore_bytes(path, data):
         path.write_bytes(data)
 
 
+def validate_mg_paths(mg_dir, exe):
+    """Check the configured MG directory and executable before writing files."""
+    if not mg_dir.exists():
+        raise FileNotFoundError(
+            f"Configured mg_dir does not exist: {mg_dir}. "
+            "Do not run compare_openloops_mg_hjj.example.json directly; "
+            "copy compare_openloops_mg_hjj.example.json to compare_openloops_mg_hjj.json "
+            "and set mg_dir to the generated MadGraph SubProcesses/PV... directory."
+        )
+    if not mg_dir.is_dir():
+        raise FileNotFoundError(f"Configured mg_dir is not a directory: {mg_dir}")
+    if not exe.exists():
+        raise FileNotFoundError(
+            f"MadGraph evaluator executable not found: {exe}. "
+            "Copy hgg_mg_eval.f into the generated subprocess directory and run 'make hgg_mg_eval'."
+        )
+
+
 def run_mg(spec, momenta, alpha_s, mu, subprocess_name):
     """Run the configured prebuilt MG standalone evaluator for this one point."""
     mg_dir = Path(spec["mg_dir"]).expanduser().resolve()
     exe = mg_dir / spec.get("mg_executable", "hgg_mg_eval")
     input_path = mg_dir / spec.get("mg_input", "hgg_mg_points.dat")
     output_path = mg_dir / spec.get("mg_output", "hgg_mg_eval.out")
+    validate_mg_paths(mg_dir, exe)
     # The evaluator uses fixed filenames, so preserve anything already there.
     old_input = read_bytes_if_exists(input_path)
     old_output = read_bytes_if_exists(output_path)

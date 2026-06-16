@@ -131,6 +131,33 @@ class MadGraphEvaluatorTests(unittest.TestCase):
             self.assertEqual((mg_dir / "points.dat").read_text(), "old input\n")
             self.assertEqual((mg_dir / "results.dat").read_text(), "old output\n")
 
+    def test_missing_mg_directory_has_actionable_error(self):
+        points = [
+            generate_accepted_points(
+                subprocess="hgg",
+                final_pdgs=[21, 21],
+                n=1,
+                seed=12,
+                mjj_min=1.0,
+                ptj=0.0,
+                ymax=20.0,
+            )[0]
+        ]
+
+        with self.assertRaisesRegex(FileNotFoundError, "copy compare_openloops_mg_hjj.example.json"):
+            run_madgraph_evaluator(
+                {
+                    "mg_dir": "/absolute/path/to/existing/mg/hgg/evaluator",
+                    "mg_executable": "hgg_mg_eval",
+                    "mg_input": "hgg_mg_points.dat",
+                    "mg_output": "hgg_mg_eval.out",
+                },
+                points,
+                alpha_s=0.11264802949303165,
+                mu=125.0,
+                category="hgg",
+            )
+
 
 class ConfigAndRatioTests(unittest.TestCase):
     def test_select_subprocess_rejects_unknown_names(self):
