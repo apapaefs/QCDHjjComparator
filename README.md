@@ -12,6 +12,8 @@ not generate or build MadGraph processes automatically.
   phase-space points and compares OpenLoops against MadGraph.
 - `compare_openloops_mg_hjj_user_momenta.py`: compares one user-supplied
   momentum point.
+- `openloops_me2.py`: prints one OpenLoops-only ME^2 value for one
+  user-supplied momentum point.
 - `hgg_mg_eval.f`: tiny Fortran driver for MadGraph standalone subprocesses.
 - `mg_eval.mk`: makefile fragment that links `hgg_mg_eval.f` against the
   generated MadLoop objects and model libraries.
@@ -148,6 +150,18 @@ python3 compare_openloops_mg_hjj_user_momenta.py \
   --momenta user_momenta.example.dat \
   --output user_point.tsv
 ```
+
+## Print Only OpenLoops ME2
+
+For the quickest OpenLoops-only check:
+
+```bash
+python3 openloops_me2.py --momenta user_momenta.example.dat
+```
+
+By default this evaluates `21 21 -> 25 21 21` with `amptype=ls` and prints only
+the finite ME^2 value. Override the process with `--process "21 21 -> 25 -2 2"`
+for the `g g -> H u~ u` channel.
 
 ## Tests
 
