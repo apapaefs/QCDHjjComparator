@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.out
+*.tsv
+hgg_mg_points.dat
+hgg_mg_eval.out
+compare_openloops_mg_hjj.json

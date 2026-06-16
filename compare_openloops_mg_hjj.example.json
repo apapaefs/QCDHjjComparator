@@ -1,0 +1,27 @@
+{
+  "openloops_root": "/Users/apapaefs/Projects/Herwig/Herwig-REAL-stable-gcc-full/opt/OpenLoops-2.1.4",
+  "subprocesses": {
+    "hgg": {
+      "final_pdgs": [21, 21],
+      "openloops_process": "21 21 -> 25 21 21",
+      "openloops_amptype": "ls",
+      "mg_dir": "/absolute/path/to/existing/mg/hgg/evaluator",
+      "mg_executable": "hgg_mg_eval",
+      "mg_input": "hgg_mg_points.dat",
+      "mg_output": "hgg_mg_eval.out",
+      "mg_factor": 1.0,
+      "openloops_factor": 1.0
+    },
+    "huu": {
+      "final_pdgs": [-2, 2],
+      "openloops_process": "21 21 -> 25 -2 2",
+      "openloops_amptype": "ls",
+      "mg_dir": "/absolute/path/to/existing/mg/huu/evaluator",
+      "mg_executable": "hgg_mg_eval",
+      "mg_input": "hgg_mg_points.dat",
+      "mg_output": "hgg_mg_eval.out",
+      "mg_factor": 1.0,
+      "openloops_factor": 1.0
+    }
+  }
+}
